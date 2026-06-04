@@ -4,11 +4,16 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import multer from "multer";
 import puppeteer from "puppeteer";
-const upload = multer({ dest: "tmp/" });
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import os from "os";
 
-if (!fs.existsSync("tmp")) fs.mkdirSync("tmp");
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
-const DB_FILE = "tmp/projects_db.json";
+const tmpDir = os.tmpdir();
+const upload = multer({ dest: path.join(tmpDir, "upload_") });
+
+const DB_FILE = path.join(tmpDir, "projects_db.json");
 
 function loadDB() {
   if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify({}));
@@ -121,7 +126,7 @@ async function startServer() {
     if (!videoFile) return res.status(400).json({ error: "No video" });
 
     const inputPath = videoFile.path;
-    const outputPath = path.join("tmp", `${videoFile.filename}.mp4`);
+    const outputPath = path.join(os.tmpdir(), `${videoFile.filename}.mp4`);
     let cmd = ffmpeg(inputPath);
     const opts = ["-c:v libx264", "-preset ultrafast", "-crf 23", "-vf scale=trunc(iw/2)*2:trunc(ih/2)*2", "-pix_fmt yuv420p", "-movflags +faststart"];
 
@@ -161,7 +166,7 @@ async function startServer() {
   app.post("/api/video/upload-render", upload.single('video'), (req, res) => {
     const projectId = req.body.projectId;
     if (req.file && projectId) {
-      const targetPath = path.join("tmp", `project_${projectId}_output.mp4`);
+      const targetPath = path.join(os.tmpdir(), `project_${projectId}_output.mp4`);
       fs.renameSync(req.file.path, targetPath);
     }
     res.json({ success: true });
@@ -188,16 +193,18 @@ async function startServer() {
     const db = loadDB();
     const match = db[projectId as string];
     if (!match) return res.status(404).json({ error: "Not found" });
-    const finalPath = path.join("tmp", `project_${projectId}_output.mp4`);
+    const finalPath = path.join(os.tmpdir(), `project_${projectId}_output.mp4`);
     if (!fs.existsSync(finalPath)) return res.status(404).json({ error: "File not ready" });
     return res.download(finalPath, `flux_video_${projectId}.mp4`);
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
+  const distPath = path.join(process.cwd(), "dist");
+  const isProd = process.env.NODE_ENV === "production" || fs.existsSync(path.join(distPath, "index.html"));
+  
+  if (!isProd) {
+    const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa", allowedHosts: true });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => { res.sendFile(path.join(distPath, "index.html")); });
   }
