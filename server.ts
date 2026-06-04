@@ -95,7 +95,8 @@ async function renderVideoHeadless(projectId: string, script: string, originalSc
     });
 
     // Navigate to local headless recorder process
-    await page.goto(`http://localhost:3000/?headless-record=${projectId}`, { waitUntil: 'networkidle0', timeout: 0 });
+    const port = process.env.PORT || 3000;
+    await page.goto(`http://localhost:${port}/?headless-record=${projectId}`, { waitUntil: 'networkidle0', timeout: 0 });
 
   } catch (err: any) {
     console.error("Puppeteer launch failed:", err);
@@ -201,8 +202,9 @@ async function startServer() {
     app.get("*", (req, res) => { res.sendFile(path.join(distPath, "index.html")); });
   }
 
-  app.listen(3000, "0.0.0.0", () => {
-    console.log(`Server running on port 3000`);
+  const port = process.env.PORT || 3000;
+  app.listen(port as number, "0.0.0.0", () => {
+    console.log(`Server running on port ${port}`);
   });
 }
 
