@@ -66,13 +66,16 @@ async function renderVideoHeadless(projectId: string, script: string, originalSc
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--autoplay-policy=no-user-gesture-required',
-        '--use-gl=egl' // Hardware acceleration fallback helps with canvas
+        '--disable-gpu',
+        '--disable-software-rasterizer'
       ]
     });
     const page = await browser.newPage();
     
     // Pass logs to backend
     page.on('console', msg => console.log('Headless Render Log:', msg.text()));
+    page.on('pageerror', err => console.error('Headless Render Page Error:', err));
+    page.on('requestfailed', request => console.error('Headless Render Failed Request:', request.url(), request.failure()?.errorText));
 
     await page.exposeFunction('onRenderComplete', async () => {
       console.log(`[Project ${projectId}] Headless render complete!`);
@@ -117,7 +120,7 @@ async function renderVideoHeadless(projectId: string, script: string, originalSc
 
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: "50mb" }));
+  app.use(express.json({ limit: "500mb" }));
 
   app.post("/api/video/render", upload.fields([{ name: "video", maxCount: 1 }, { name: "audio", maxCount: 1 }]), (req: any, res) => {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;

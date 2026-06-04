@@ -1763,7 +1763,7 @@ jobs:
                            </span>
                            <span className="text-[10px] flex items-center gap-1 mt-1 font-mono uppercase tracking-tighter">
                               {p.status === 'rendering' ? (
-                                <span className="text-orange-500 flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Syncing</span>
+                                <span className="text-orange-500 flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Rendering...</span>
                               ) : (
                                 <span className="text-emerald-500/70 flex items-center gap-1"><Video size={10} /> Ready</span>
                               )}
