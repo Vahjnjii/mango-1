@@ -202,7 +202,7 @@ async function startServer() {
   const isProd = process.env.NODE_ENV === "production" || fs.existsSync(path.join(distPath, "index.html"));
   
   if (!isProd) {
-    const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa", allowedHosts: true });
+    const vite = await createViteServer({ server: { middlewareMode: true, allowedHosts: true }, appType: "spa" });
     app.use(vite.middlewares);
   } else {
     app.use(express.static(distPath));
